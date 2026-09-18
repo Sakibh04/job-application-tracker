@@ -1,141 +1,200 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Application Tracker - Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="header-content">
+{% extends 'base.html' %}
+{% block title %}Applications · Job Tracker{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='script.js') }}" defer></script>{% endblock %}
+{% block body %}
+    <header class="site-header">
+        <a class="brand" href="/dashboard"><span class="brand-mark">{{ icon("arrow") }}</span>Job Tracker<span class="brand-period">.</span></a>
+        <div class="account">
+            <span class="username">{{ session.get('username', '') }}</span>
+            <button class="text-button" onclick="logout()">Sign out {{ icon("arrow") }}</button>
+        </div>
+    </header>
+    <div class="workspace">
+        <aside class="sidebar" aria-label="Workspace navigation">
+            <div>
+                <p class="eyebrow">Workspace</p>
+                <a class="nav-item active" href="/dashboard" aria-current="page">{{ icon("grid") }} Applications</a>
+                <button class="nav-item" onclick="exportToCSV()">{{ icon("download") }} Export applications</button>
+            </div>
+            <div class="sidebar-note">
+                <span class="small-rule"></span>
+                <p>
+                    Every application.
+                    <br>
+                    One place.
+                </p>
+                <span>Keep your next move in view.</span>
+            </div>
+        </aside>
+        <main id="main" class="dashboard">
+            <div class="page-heading">
                 <div>
-                    <h1 class="job-tracker">Job Tracker</h1>
+                    <p class="eyebrow">Your job search</p>
+                    <h1>
+                        Applications<span class="accent">.</span>
+                    </h1>
+                    <p class="muted">A clear view of where you are, and what’s next.</p>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                <button class="btn btn-primary" onclick="openModal()">{{ icon("plus") }} Add application</button>
+            </div>
+            <section class="stats" aria-label="Application overview">
+                {% for key, label, description in [('all', 'All applications', 'Your complete search'), ('applied', 'Applied', 'Applications sent'), ('interview', 'Interviews', 'Conversations in progress'), ('offer', 'Offers', 'Opportunities to consider')] %}
+                    <button class="stat-item {% if key == 'all' %}selected{% endif %}"
+                            data-status="{{ '' if key == 'all' else key }}"
+                            onclick="setStatus(this.dataset.status)"
+                            aria-pressed="{{ 'true' if key == 'all' else 'false' }}">
+                        <span class="stat-label">{{ label }} {{ icon("arrow") }}</span><span class="stat-number" id="count-{{ key }}">—</span><span class="stat-description">{{ description }}</span>
+                    </button>
+                {% endfor %}
+            </section>
+            <section class="applications" aria-labelledby="listHeading">
+                <div class="section-heading">
+                    <h2 id="listHeading">
+                        Application list <span id="resultCount" class="count-badge">—</span>
+                    </h2>
+                    <span class="muted small" id="listSummary" aria-live="polite">Loading your applications</span>
                 </div>
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-number" id="totalApps">0</span>
-                    <span>Total Applications</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number" id="interviewCount">0</span>
-                    <span>Interviews</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <button class="btn btn-primary" onclick="openModal()">+ Add New Application</button>
-                <button class="btn btn-success" onclick="exportToCSV()">Export CSV</button>
-            </div>
-            <div class="filters">
-                <select id="statusFilter" onchange="loadJobs()">
-                    <option value="">All Statuses</option>
-                    <option value="applied">Applied</option>
-                    <option value="interview">Interview</option>
-                    <option value="offer">Offer</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="withdrawn">Withdrawn</option>
-                </select>
-                <button class="btn btn-outline" onclick="clearFilters()">Clear Filters</button>
-            </div>
-        </div>
-
-        <div class="loading" id="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>Loading...</p>
-        </div>
-
-        <div class="table-container">
-            <table id="jobTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable('company')">Company</th>
-                        <th onclick="sortTable('position')">Position</th>
-                        <th onclick="sortTable('status')">Status</th>
-                        <th onclick="sortTable('applied_date')">Applied Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="jobTableBody">
-                </tbody>
-            </table>
-            <div id="emptyState" class="empty-state" style="display: none;">
-                <h3>No applications found!</h3>
-                <p>Click "Add New Application" to get started tracking your job search.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="jobModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Add New Application</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
-            </div>
-            <form id="jobForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="company">Company *</label>
-                        <input type="text" id="company" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="position">Position *</label>
-                        <input type="text" id="position" required>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="status">Status</label>
-                        <select id="status">
-                            <option value="applied">Applied</option>
-                            <option value="interview">Interview</option>
-                            <option value="offer">Offer</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="withdrawn">Withdrawn</option>
+                <div class="toolbar">
+                    <label class="search-field">
+                        {{ icon("search") }}
+                        <input type="search"
+                               id="searchInput"
+                               placeholder="Search company or position"
+                               aria-label="Search company or position">
+                    </label>
+                    <div class="filter-controls">
+                        <label for="statusFilter" class="sr-only">Filter by status</label>
+                        <select id="statusFilter" onchange="setStatus(this.value)">
+                            <option value="">All statuses</option>
+                            {% for value in ['applied', 'interview', 'offer', 'rejected', 'withdrawn'] %}
+                                <option value="{{ value }}">{{ value|capitalize }}</option>
+                            {% endfor %}
                         </select>
+                        <button class="text-button" id="clearFilters" onclick="clearFilters()" hidden>Clear filters</button>
                     </div>
                 </div>
-                
+                <div id="loadError" class="load-error" hidden>
+                    <p>We couldn’t load your applications. Please try again.</p>
+                    <button class="btn btn-secondary" onclick="loadJobs()">Try again</button>
+                </div>
+                <div class="table-container" id="tableContainer" aria-busy="true">
+                    <table id="jobTable">
+                        <caption class="sr-only">Your job applications. Use column headings to sort.</caption>
+                        <thead>
+                            <tr>
+                                {% for key, label in [('company','Company'),('position','Position'),('status','Status'),('applied_date','Date applied')] %}
+                                    <th scope="col" data-column="{{ key }}" aria-sort="none">
+                                        <button onclick="sortTable('{{ key }}')">{{ label }} {{ icon("sort") }}</button>
+                                    </th>
+                                {% endfor %}
+                                <th scope="col" class="actions-heading">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobTableBody">
+                        </tbody>
+                    </table>
+                    <div id="loading" class="empty-state">
+                        <span class="spinner"></span>
+                        <p>Loading applications…</p>
+                    </div>
+                    <div id="emptyState" class="empty-state" hidden>
+                        <span class="empty-art" aria-hidden="true">{{ icon("plus") }}</span>
+                        <h3 id="emptyTitle">Your next chapter starts here.</h3>
+                        <p id="emptyDescription">Add your first application to start keeping track of your search.</p>
+                        <button id="emptyAction" class="btn btn-primary" onclick="openModal()">{{ icon("plus") }} Add application</button>
+                    </div>
+                </div>
+                <div class="table-footer">
+                    <span>Keep statuses up to date as your search progresses.</span>
+                    <button class="text-button" onclick="exportToCSV()">{{ icon("download") }} Export CSV</button>
+                </div>
+            </section>
+            <footer class="workspace-footer">
+                <span>Job Tracker</span><span>A little more clarity. A better next step.</span>
+            </footer>
+        </main>
+    </div>
+    <dialog id="jobModal" class="modal" aria-labelledby="modalTitle">
+        <div class="modal-header">
+            <div>
+                <p class="eyebrow">Your application</p>
+                <h2 id="modalTitle">Add application</h2>
+            </div>
+            <button class="icon-button"
+                    onclick="closeModal()"
+                    aria-label="Close application form">{{ icon("close") }}</button>
+        </div>
+        <form id="jobForm">
+            <p class="form-intro">Keep the details together. Fields marked * are required.</p>
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="appliedDate">Applied Date</label>
+                    <label for="company">Company *</label>
+                    <input id="company"
+                           required
+                           maxlength="200"
+                           autocomplete="organization"
+                           placeholder="Company name">
+                </div>
+                <div class="form-group">
+                    <label for="position">Position *</label>
+                    <input id="position" required maxlength="200" placeholder="Job title">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status">
+                        {% for value in ['applied', 'interview', 'offer', 'rejected', 'withdrawn'] %}
+                            <option value="{{ value }}">{{ value|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="appliedDate">Date applied</label>
                     <input type="date" id="appliedDate">
                 </div>
-                
-                <div class="form-group">
-                    <label for="jobUrl">Job URL</label>
-                    <input type="url" id="jobUrl" placeholder="https://...">
-                </div>
-                
-                <div class="form-group">
-                    <label for="salary">Salary Range</label>
-                    <input type="text" id="salary" placeholder="$50,000 - $70,000">
-                </div>
-                
-                <div class="form-group">
-                    <label for="notes">Notes</label>
-                    <textarea id="notes" placeholder="Interview notes, application details, etc..." rows="4"></textarea>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveButton">
-                        <span class="btn-text">Save Application</span>
-                        <span class="btn-loading" style="display: none;">Saving...</span>
-                    </button>
-                </div>
-            </form>
+            </div>
+            <div class="form-group">
+                <label for="jobUrl">Job posting URL</label>
+                <input type="url" id="jobUrl" placeholder="https://" pattern="https?://.*">
+            </div>
+            <div class="form-group">
+                <label for="salary">
+                    Salary range <span class="optional">Optional</span>
+                </label>
+                <input id="salary" placeholder="Include amount and currency">
+            </div>
+            <div class="form-group">
+                <label for="notes">
+                    Notes <span class="optional">Optional</span>
+                </label>
+                <textarea id="notes"
+                          rows="4"
+                          placeholder="Contacts, interview details, or next steps"></textarea>
+            </div>
+            <p id="formError" class="error-message" role="alert"></p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" type="submit" id="saveButton">Save application {{ icon("arrow") }}</button>
+            </div>
+        </form>
+    </dialog>
+    <dialog id="deleteModal"
+            class="modal small-modal"
+            aria-labelledby="deleteTitle">
+        <div class="modal-header">
+            <h2 id="deleteTitle">Delete application?</h2>
+            <button class="icon-button"
+                    onclick="document.getElementById('deleteModal').close()"
+                    aria-label="Cancel deletion">{{ icon("close") }}</button>
         </div>
-    </div>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>
+        <p class="delete-description" id="deleteDescription"></p>
+        <p class="delete-description muted">This application and its notes will be permanently removed.</p>
+        <p id="deleteError" class="error-message" role="alert"></p>
+        <div class="form-actions">
+            <button class="btn btn-secondary"
+                    onclick="document.getElementById('deleteModal').close()">Cancel</button>
+            <button class="btn btn-primary" id="confirmDelete">Delete application</button>
+        </div>
+    </dialog>
+{% endblock %}
