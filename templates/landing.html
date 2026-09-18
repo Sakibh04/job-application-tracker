@@ -1,398 +1,123 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Job Application Tracker</title>
-        <link
-            rel="stylesheet"
-            href="{{ url_for('static', filename='styles.css') }}"
-        />
-    </head>
-    <body class="landing-page">
-        <div class="landing-container">
-            <div class="hero-section">
-                <div class="slideshow">
-                    <img
-                        src="{{ url_for('static', filename='bg1.jpg') }}"
-                        class="active"
-                        alt="Background 1"
-                    />
-                    <img
-                        src="{{ url_for('static', filename='bg2.jpg') }}"
-                        alt="Background 2"
-                    />
-                    <img
-                        src="{{ url_for('static', filename='bg3.jpg') }}"
-                        alt="Background 3"
-                    />
-                </div>
-
-                <div class="hero-overlay"></div>
-                <div class="hero-content">
-                    <h1 class="hero-title">Job Tracker</h1>
-                    <p class="hero-subtitle">
-                        Transform your job search with intelligent tracking,
-                        powerful insights, and seamless organization. Your dream
-                        career awaits.
-                    </p>
-
-                    <div class="cta-buttons">
-                        <button
-                            class="btn btn-primary"
-                            onclick="showRegisterForm()"
-                        >
-                            <span>Get Started</span>
-                        </button>
-                        <button
-                            class="btn btn-outline"
-                            onclick="showLoginForm()"
-                        >
-                            <span>Sign In</span>
-                        </button>
-                    </div>
-                </div>
+{% extends 'base.html' %}
+{% block title %}Job Tracker · Your next move, in focus{% endblock %}
+{% block body_class %}landing-page{% endblock %}
+{% block head %}
+    <script src="{{ url_for('static', filename='auth.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='slideshow.js') }}" defer></script>
+{% endblock %}
+{% block body %}
+    <header class="site-header">
+        <a class="brand" href="/"><span class="brand-mark">{{ icon("arrow") }}</span>Job Tracker<span class="brand-period">.</span></a>
+        <button class="text-button" onclick="showAuth('login')">Sign in {{ icon("arrow") }}</button>
+    </header>
+    <main id="main">
+        <section class="landing-hero" aria-label="Your next move">
+            <div class="hero-photos" aria-hidden="true">
+                {% for number in [1, 2, 3] %}
+                    <img class="hero-photo{% if loop.first %} is-active{% endif %}"
+                         src="{{ url_for('static', filename='bg' ~ number ~ '.jpg') }}"
+                         alt="" decoding="async" {% if loop.first %}fetchpriority="high"{% endif %}>
+                {% endfor %}
             </div>
-        </div>
-
-        <!-- Login Modal -->
-        <div id="loginModal" class="auth-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Welcome Back</h2>
-                    <span class="close" onclick="closeModal()">&times;</span>
-                </div>
-                <form id="loginForm" class="auth-form">
-                    <div class="form-group">
-                        <label for="loginUsername">Username or Email</label>
-                        <input type="text" id="loginUsername" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" required />
-                    </div>
-                    <div class="form-group">
-                        <small
-                            class="error-message"
-                            id="loginError"
-                            role="alert"
-                            aria-live="polite"
-                        ></small>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-full">
-                        <span class="btn-text">Sign In</span>
-                        <span class="btn-loading">Signing In...</span>
-                    </button>
-                </form>
-                <p class="auth-switch">
-                    Don't have an account?
-                    <a href="#" onclick="switchToRegister()">Sign Up</a>
+            <div class="hero-copy">
+                <p class="eyebrow">A place for your job search</p>
+                <h1>
+                    Your next
+                    <br>
+                    move,
+                    <br>
+                    <span class="accent">in focus.</span>
+                </h1>
+                <p class="hero-description">
+                    Applications, interviews, and offers.
+                    <br>
+                    Keep every opportunity in view, from the first application to your next role.
+                </p>
+                <button class="btn btn-primary" onclick="showAuth('register')">Create an account {{ icon("arrow") }}</button>
+                <p class="hero-signin">
+                    Already tracking your search?
+                    <button class="inline-button" onclick="showAuth('login')">Sign in</button>
                 </p>
             </div>
-        </div>
-
-        <!-- Register Modal -->
-        <div id="registerModal" class="auth-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Create Account</h2>
-                    <span class="close" onclick="closeModal()">&times;</span>
+            <div class="hero-bottom">
+                <div class="photo-steps" role="group" aria-label="Choose background photo" hidden>
+                    {% for label, description in [('Apply', 'Put yourself forward.'), ('Interview', 'Make a connection.'), ('Offer', 'Start something new.')] %}
+                        <button class="photo-step{% if loop.first %} is-active{% endif %}"
+                                data-slide="{{ loop.index0 }}"
+                                aria-label="Show photo {{ loop.index }}: {{ label }}"
+                                aria-pressed="{{ 'true' if loop.first else 'false' }}">
+                            <span class="photo-step-number">0{{ loop.index }}</span>
+                            <span><span class="photo-step-label">{{ label }}</span><span class="photo-step-description">{{ description }}</span></span>
+                        </button>
+                    {% endfor %}
                 </div>
-
-                <form id="registerForm" class="auth-form">
-                    <div class="form-group">
-                        <label for="registerEmail">Email</label>
-                        <input
-                            type="email"
-                            id="registerEmail"
-                            name="email"
-                            required
-                        />
-                        <small class="error-message" id="emailError"></small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="registerUsername">Username</label>
-                        <input
-                            type="text"
-                            id="registerUsername"
-                            name="username"
-                            required
-                        />
-                        <small class="error-message" id="usernameError"></small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="registerPassword">Password</label>
-                        <input
-                            type="password"
-                            id="registerPassword"
-                            name="password"
-                            required
-                        />
-                        <small class="error-message" id="passwordError"></small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="registerConfirm">Confirm Password</label>
-                        <input
-                            type="password"
-                            id="registerConfirm"
-                            name="confirm"
-                            required
-                        />
-                        <small
-                            class="error-message"
-                            id="confirmPasswordError"
-                        ></small>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-full">
-                        Register
-                    </button>
-                </form>
-
-                <p class="auth-switch">
-                    Already have an account?
-                    <a href="#" onclick="switchToLogin()">Sign In</a>
-                </p>
             </div>
+        </section>
+    </main>
+{% for mode in ['login', 'register'] %}
+    <dialog id="{{ mode }}Modal"
+            class="modal auth-modal"
+            aria-labelledby="{{ mode }}Title">
+        <div class="modal-header">
+            <div>
+                <p class="eyebrow">Job Tracker</p>
+                <h2 id="{{ mode }}Title">{{ 'Welcome back.' if mode == 'login' else 'Start your next chapter.' }}</h2>
+            </div>
+            <button class="icon-button"
+                    onclick="document.getElementById('{{ mode }}Modal').close()"
+                    aria-label="Close {{ 'sign in' if mode == 'login' else 'registration' }}">
+                {{ icon("close") }}
+            </button>
         </div>
-
-        <!-- Error/Success Messages -->
-        <div id="messageContainer" class="message-container"></div>
-
-        <script>
-            // Modal Management
-            function showLoginForm() {
-                console.log("Showing login form");
-                document.getElementById("loginModal").style.display = "flex";
-                document.getElementById("registerModal").style.display = "none";
-                setTimeout(() => {
-                    document.getElementById("loginUsername").focus();
-                }, 100);
-            }
-
-            function showRegisterForm() {
-                console.log("Showing register form");
-                document.getElementById("registerModal").style.display = "flex";
-                document.getElementById("loginModal").style.display = "none";
-                setTimeout(() => {
-                    document.getElementById("registerUsername").focus();
-                }, 100);
-            }
-
-            function closeModal() {
-                console.log("Closing modals");
-                document.getElementById("loginModal").style.display = "none";
-                document.getElementById("registerModal").style.display = "none";
-            }
-
-            function switchToRegister() {
-                closeModal();
-                showRegisterForm();
-            }
-
-            function switchToLogin() {
-                closeModal();
-                showLoginForm();
-            }
-
-            // Close modal when clicking outside
-            window.onclick = function (event) {
-                const loginModal = document.getElementById("loginModal");
-                const registerModal = document.getElementById("registerModal");
-                if (
-                    event.target === loginModal ||
-                    event.target === registerModal
-                ) {
-                    closeModal();
-                }
-            };
-
-            // Message Display
-            function showMessage(message, type = "info") {
-                const container = document.getElementById("messageContainer");
-                const messageDiv = document.createElement("div");
-                messageDiv.className = `message ${type}`;
-                messageDiv.textContent = message;
-
-                container.appendChild(messageDiv);
-
-                // Auto remove after 5 seconds
-                setTimeout(() => {
-                    if (messageDiv.parentElement) {
-                        messageDiv.remove();
-                    }
-                }, 5000);
-            }
-
-            // Form Submission Handlers
-            document
-                .getElementById("loginForm")
-                .addEventListener("submit", async function (e) {
-                    e.preventDefault();
-
-                    const button = this.querySelector('button[type="submit"]');
-                    const btnText = button.querySelector(".btn-text");
-                    const btnLoading = button.querySelector(".btn-loading");
-                    const loginError = document.getElementById("loginError");
-
-                    if (loginError) {
-                        loginError.textContent = "";
-                        loginError.style.display = "none";
-                    }
-
-                    // Show loading state
-                    button.disabled = true;
-                    btnText.style.display = "none";
-                    btnLoading.style.display = "inline";
-
-                    try {
-                        const formData = {
-                            username: document
-                                .getElementById("loginUsername")
-                                .value.trim(),
-                            password:
-                                document.getElementById("loginPassword").value,
-                        };
-
-                        const response = await fetch("/api/login", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify(formData),
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                            setTimeout(() => {
-                                window.location.href = "/dashboard";
-                            }, 1000);
-                        } else {
-                            if (loginError) {
-                                loginError.textContent =
-                                    data.error || "Login failed";
-                                loginError.style.display = "block";
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Login error:", error);
-                        if (loginError) {
-                            loginError.textContent =
-                                "Network error. Please try again.";
-                            loginError.style.display = "block";
-                        }
-                    } finally {
-                        // Reset button state
-                        button.disabled = false;
-                        btnText.style.display = "inline";
-                        btnLoading.style.display = "none";
-                    }
-                });
-
-            document
-                .getElementById("registerForm")
-                .addEventListener("submit", async function (e) {
-                    e.preventDefault();
-
-                    const button = this.querySelector('button[type="submit"]');
-
-                    // Clear previous errors
-                    document
-                        .querySelectorAll(".error-message")
-                        .forEach((el) => {
-                            el.textContent = "";
-                            el.style.display = "none";
-                        });
-
-                    // Show loading state
-                    button.disabled = true;
-
-                    try {
-                        const formData = {
-                            username: document
-                                .getElementById("registerUsername")
-                                .value.trim(),
-                            email: document
-                                .getElementById("registerEmail")
-                                .value.trim(),
-                            password:
-                                document.getElementById("registerPassword")
-                                    .value,
-                            confirmPassword:
-                                document.getElementById("registerConfirm")
-                                    .value, // ✅ include confirm
-                        };
-
-                        console.log("Sending register request:", formData);
-
-                        const response = await fetch("/api/register", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(formData),
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                            setTimeout(() => {
-                                window.location.href = "/dashboard";
-                            }, 1000);
-                        } else {
-                            // ✅ If backend returns structured field errors
-                            if (data.errors) {
-                                Object.keys(data.errors).forEach((field) => {
-                                    const errorEl = document.getElementById(
-                                        field + "Error",
-                                    );
-                                    if (errorEl) {
-                                        errorEl.textContent =
-                                            data.errors[field];
-                                        errorEl.style.display = "block";
-                                        return;
-                                    }
-                                    if (field === "confirmPassword") {
-                                        const confirmEl =
-                                            document.getElementById(
-                                                "confirmPasswordError",
-                                            );
-                                        if (confirmEl) {
-                                            confirmEl.textContent =
-                                                data.errors[field];
-                                            confirmEl.style.display = "block";
-                                        }
-                                    }
-                                });
-                            } else if (data.error) {
-                                // ✅ fallback to general error
-                                showMessage(data.error, "error");
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Register error:", error);
-                        showMessage(
-                            "Network error. Please try again.",
-                            "error",
-                        );
-                    } finally {
-                        // Reset button state
-                        button.disabled = false;
-                    }
-                });
-            // Background Slideshow
-            document.addEventListener("DOMContentLoaded", () => {
-                const slides = document.querySelectorAll(".slideshow img");
-                let current = 0;
-
-                setInterval(() => {
-                    slides[current].classList.remove("active");
-                    current = (current + 1) % slides.length;
-                    slides[current].classList.add("active");
-                }, 4000); // change every 7 seconds
-            });
-        </script>
-    </body>
-</html>
+        <form id="{{ mode }}Form" class="auth-form">
+            <p class="form-intro">
+                {{ 'Sign in to pick up where you left off.' if mode == 'login' else 'Create an account to keep your search together.' }}
+            </p>
+            {% if mode == 'register' %}
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" autocomplete="email" required>
+                </div>
+            {% endif %}
+            <div class="form-group">
+                <label for="{{ mode }}Username">{{ 'Username or email' if mode == 'login' else 'Username' }}</label>
+                <input id="{{ mode }}Username"
+                       autocomplete="username"
+                       {% if mode == 'register' %}minlength="3"{% endif %}
+                       required>
+                {% if mode == 'register' %}<span class="field-hint">At least 3 characters.</span>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ mode }}Password">Password</label>
+                <input type="password"
+                       id="{{ mode }}Password"
+                       autocomplete="{{ 'current-password' if mode == 'login' else 'new-password' }}"
+                       {% if mode == 'register' %}minlength="6"{% endif %}
+                       required>
+                {% if mode == 'register' %}<span class="field-hint">At least 6 characters.</span>{% endif %}
+            </div>
+            {% if mode == 'register' %}
+                <div class="form-group">
+                    <label for="registerConfirm">Confirm password</label>
+                    <input type="password"
+                           id="registerConfirm"
+                           autocomplete="new-password"
+                           minlength="6"
+                           required>
+                </div>
+            {% endif %}
+            <p class="error-message" id="{{ mode }}Error" role="alert"></p>
+            <button type="submit" class="btn btn-primary btn-full">
+                {{ 'Sign in' if mode == 'login' else 'Create account' }} {{ icon("arrow") }}
+            </button>
+        </form>
+        <p class="auth-switch">
+            {{ 'New to Job Tracker?' if mode == 'login' else 'Already have an account?' }}
+            <button class="inline-button"
+                    onclick="showAuth('{{ 'register' if mode == 'login' else 'login' }}')">
+                {{ 'Create an account' if mode == 'login' else 'Sign in' }}
+            </button>
+        </p>
+    </dialog>
+{% endfor %}
+{% endblock %}
